@@ -119,6 +119,7 @@ def run(
     # Run inference
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(), Profile(), Profile())
+    frame_count = 0  # 프레임 카운트 변수 추가
     for path, im, im0s, vid_cap, s in dataset:
         with dt[0]:
             im = torch.from_numpy(im).to(model.device)
@@ -151,7 +152,7 @@ def run(
                     writer.writeheader()
                 writer.writerow(data)
 
-        # Initialize the MySQL connection
+        # 커넥션 초기화
         def initialize_mysql_connection():
             conn = pymysql.connect(
                 host='127.0.0.1',
@@ -163,24 +164,36 @@ def run(
             )
             return conn
 
-        # Function to insert data into MySQL
+        # SQL 내 객체 존재 시 업데이트, 없을 시 추가
         def insert_data_into_mysql(object_id, label, confidence, x, y, w, h):
             conn = initialize_mysql_connection()
             try:
                 with conn.cursor() as cursor:
-                    # Check if the combination of object_id and label already exists
                     sql_check = "SELECT * FROM two WHERE object_id=%s AND label=%s"
                     cursor.execute(sql_check, (object_id, label))
                     existing_record = cursor.fetchone()
 
                     if existing_record:
-                        # If record already exists, perform an update
-                        sql_update = "UPDATE two SET confidence=%s, x=%s, y=%s, w=%s, h=%s WHERE object_id=%s AND label=%s"
+                        sql_update = "UPDATE two SET confidence=%s, x=%s, y=%s, w=%s, h=%s, timestamp=NOW() WHERE object_id=%s AND label=%s"
                         cursor.execute(sql_update, (confidence, x, y, w, h, object_id, label))
                     else:
-                        # If record doesn't exist, perform an insert
-                        sql_insert = "INSERT INTO two (object_id, label, confidence, x, y, w, h) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+                        sql_insert = "INSERT INTO two (object_id, label, confidence, x, y, w, h, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())"
                         cursor.execute(sql_insert, (object_id, label, confidence, x, y, w, h))
+
+                conn.commit()
+            finally:
+                conn.close()
+
+        # timestamp의 시간이 5초가 흐르면 데이터 삭제
+        def delete_inactive_objects():
+            conn = initialize_mysql_connection()
+            try:
+                with conn.cursor() as cursor:
+                    cursor.execute("SELECT NOW() - INTERVAL 5 SECOND as threshold_time")
+                    threshold_time = cursor.fetchone()['threshold_time']
+
+                    sql_delete_inactive = "DELETE FROM two WHERE timestamp < %s"
+                    cursor.execute(sql_delete_inactive, (threshold_time,))
 
                 conn.commit()
             finally:
@@ -192,6 +205,9 @@ def run(
         # Process predictions
         for i, det in enumerate(pred):  # per image
             seen += 1
+            frame_count += 1
+            if frame_count % 5 == 0:
+                delete_inactive_objects()
             if webcam:  # batch_size >= 1
                 p, im0, frame = path[i], im0s[i].copy(), dataset.count
                 s += f'{i}: '
