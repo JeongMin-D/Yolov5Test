@@ -155,8 +155,8 @@ def run(
         # 커넥션 초기화
         def initialize_mysql_connection():
             conn = pymysql.connect(
-                host='127.0.0.1',
-                user='root',
+                host='192.168.1.155',
+                user='turtlebot',
                 password='0000',
                 db='test',
                 charset='utf8mb4',
@@ -174,10 +174,10 @@ def run(
                     existing_record = cursor.fetchone()
 
                     if existing_record:
-                        sql_update = "UPDATE two SET confidence=%s, x=%s, y=%s, w=%s, h=%s, timestamp=NOW() WHERE object_id=%s AND label=%s"
+                        sql_update = "UPDATE two SET confidence=%s, x_cm=%s, y_cm=%s, w=%s, h=%s, timestamp=NOW() WHERE object_id=%s AND label=%s"
                         cursor.execute(sql_update, (confidence, x, y, w, h, object_id, label))
                     else:
-                        sql_insert = "INSERT INTO two (object_id, label, confidence, x, y, w, h, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())"
+                        sql_insert = "INSERT INTO two (object_id, label, confidence, x_cm, y_cm, w, h, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())"
                         cursor.execute(sql_insert, (object_id, label, confidence, x, y, w, h))
 
                 conn.commit()
@@ -318,9 +318,9 @@ def parse_opt():
     parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'yolov5s.pt', help='model path or triton URL')
     parser.add_argument('--source', type=str, default=ROOT / 'data/images', help='file/dir/URL/glob/screen/0(webcam)')
     parser.add_argument('--data', type=str, default=ROOT / 'data/coco128.yaml', help='(optional) dataset.yaml path')
-    parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[640], help='inference size h,w')
-    parser.add_argument('--conf-thres', type=float, default=0.6, help='confidence threshold')
-    parser.add_argument('--iou-thres', type=float, default=0.6, help='NMS IoU threshold')
+    parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[1000], help='inference size h,w')
+    parser.add_argument('--conf-thres', type=float, default=0.4, help='confidence threshold')
+    parser.add_argument('--iou-thres', type=float, default=0.4, help='NMS IoU threshold')
     parser.add_argument('--max-det', type=int, default=1000, help='maximum detections per image')
     parser.add_argument('--device', default='', help='cuda device, i.e. 0 or 0,1,2,3 or cpu')
     parser.add_argument('--view-img', action='store_true', help='show results')
