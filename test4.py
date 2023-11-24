@@ -59,7 +59,7 @@ def run(
         weights=ROOT / 'yolov5s.pt',  # model path or triton URL
         source=ROOT / 'data/images',  # file/dir/URL/glob/screen/0(webcam)
         data=ROOT / 'data/coco128.yaml',  # dataset.yaml path
-        imgsz=(640, 640),  # inference size (height, width)
+        imgsz=(1000, 1000),  # inference size (height, width)
         conf_thres=0.25,  # confidence threshold
         iou_thres=0.45,  # NMS IOU threshold
         max_det=1000,  # maximum detections per image
@@ -158,7 +158,7 @@ def run(
                 host='192.168.1.155',
                 user='turtlebot',
                 password='0000',
-                db='test',
+                db='custom',
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
             )
@@ -169,15 +169,15 @@ def run(
             conn = initialize_mysql_connection()
             try:
                 with conn.cursor() as cursor:
-                    sql_check = "SELECT * FROM two WHERE object_id=%s AND label=%s"
+                    sql_check = "SELECT * FROM camera WHERE object_id=%s AND label=%s"
                     cursor.execute(sql_check, (object_id, label))
                     existing_record = cursor.fetchone()
 
                     if existing_record:
-                        sql_update = "UPDATE two SET confidence=%s, x_cm=%s, y_cm=%s, w=%s, h=%s, timestamp=NOW() WHERE object_id=%s AND label=%s"
+                        sql_update = "UPDATE camera SET confidence=%s, x_cm=%s, y_cm=%s, w=%s, h=%s, timestamp=NOW() WHERE object_id=%s AND label=%s"
                         cursor.execute(sql_update, (confidence, x, y, w, h, object_id, label))
                     else:
-                        sql_insert = "INSERT INTO two (object_id, label, confidence, x_cm, y_cm, w, h, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())"
+                        sql_insert = "INSERT INTO camera (object_id, label, confidence, x_cm, y_cm, w, h, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())"
                         cursor.execute(sql_insert, (object_id, label, confidence, x, y, w, h))
 
                 conn.commit()
@@ -192,7 +192,7 @@ def run(
                     cursor.execute("SELECT NOW() - INTERVAL 5 SECOND as threshold_time")
                     threshold_time = cursor.fetchone()['threshold_time']
 
-                    sql_delete_inactive = "DELETE FROM two WHERE timestamp < %s"
+                    sql_delete_inactive = "DELETE FROM camera WHERE timestamp < %s"
                     cursor.execute(sql_delete_inactive, (threshold_time,))
 
                 conn.commit()
@@ -246,10 +246,16 @@ def run(
 
                     # Print coordinates
                     x, y, w, h = map(int, xyxy)  # Convert to integers
+                    # x_cm = x * 1500 / 1024
+                    # y_cm = y * 1500 / 1024
+                    # w_cm = w * 1500 / 1024
+                    # h_cm = h * 1500 / 1024
+
                     x_cm = x * 0.0264583333
                     y_cm = y * 0.0264583333
                     w_cm = w * 0.0264583333
                     h_cm = h * 0.0264583333
+
                     print(
                         f'Object ID: {object_id}, Label: {label}, Confidence: {confidence_str}, Coordinates: x={x_cm}, y={y_cm}, w={w_cm}, h={h_cm}')
 
@@ -318,7 +324,7 @@ def parse_opt():
     parser.add_argument('--weights', nargs='+', type=str, default=ROOT / 'yolov5s.pt', help='model path or triton URL')
     parser.add_argument('--source', type=str, default=ROOT / 'data/images', help='file/dir/URL/glob/screen/0(webcam)')
     parser.add_argument('--data', type=str, default=ROOT / 'data/coco128.yaml', help='(optional) dataset.yaml path')
-    parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[1000], help='inference size h,w')
+    parser.add_argument('--imgsz', '--img', '--img-size', nargs='+', type=int, default=[1024], help='inference size h,w')
     parser.add_argument('--conf-thres', type=float, default=0.4, help='confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.4, help='NMS IoU threshold')
     parser.add_argument('--max-det', type=int, default=1000, help='maximum detections per image')
