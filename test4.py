@@ -251,10 +251,10 @@ def run(
                     # w_cm = w * 1500 / 1024
                     # h_cm = h * 1500 / 1024
 
-                    x_cm = x * 0.0264583333
-                    y_cm = y * 0.0264583333
-                    w_cm = w * 0.0264583333
-                    h_cm = h * 0.0264583333
+                    x_cm = x * 0.2531321181
+                    y_cm = y * 0.3725490196
+                    w_cm = w * 0.2531321181
+                    h_cm = h * 0.3725490196
 
                     print(
                         f'Object ID: {object_id}, Label: {label}, Confidence: {confidence_str}, Coordinates: x={x_cm}, y={y_cm}, w={w_cm}, h={h_cm}')
