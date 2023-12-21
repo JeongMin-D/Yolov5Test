@@ -156,10 +156,10 @@ def run(
         # 커넥션 초기화
         def initialize_mysql_connection():
             conn = pymysql.connect(
-                host='127.0.0.1',
-                user='root',
+                host='192.168.1.155',
+                user='turtlebot',
                 password='0000',
-                db='test',
+                db='custom',
                 charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
             )
@@ -170,15 +170,15 @@ def run(
             conn = initialize_mysql_connection()
             try:
                 with conn.cursor() as cursor:
-                    sql_check = "SELECT * FROM two WHERE object_id=%s AND label=%s"
+                    sql_check = "SELECT * FROM camera WHERE object_id=%s AND label=%s"
                     cursor.execute(sql_check, (object_id, label))
                     existing_record = cursor.fetchone()
 
                     if existing_record:
-                        sql_update = "UPDATE two SET confidence=%s, x_cm=%s, y_cm=%s, w=%s, h=%s, timestamp=NOW() WHERE object_id=%s AND label=%s"
+                        sql_update = "UPDATE camera SET confidence=%s, x_cm=%s, y_cm=%s, w=%s, h=%s, timestamp=NOW() WHERE object_id=%s AND label=%s"
                         cursor.execute(sql_update, (confidence, x, y, w, h, object_id, label))
                     else:
-                        sql_insert = "INSERT INTO two (object_id, label, confidence, x_cm, y_cm, w, h, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())"
+                        sql_insert = "INSERT INTO camera (object_id, label, confidence, x_cm, y_cm, w, h, timestamp) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())"
                         cursor.execute(sql_insert, (object_id, label, confidence, x, y, w, h))
 
                 conn.commit()
@@ -193,7 +193,7 @@ def run(
                     cursor.execute("SELECT NOW() - INTERVAL 5 SECOND as threshold_time")
                     threshold_time = cursor.fetchone()['threshold_time']
 
-                    sql_delete_inactive = "DELETE FROM two WHERE timestamp < %s"
+                    sql_delete_inactive = "DELETE FROM camera WHERE timestamp < %s"
                     cursor.execute(sql_delete_inactive, (threshold_time,))
 
                 conn.commit()
